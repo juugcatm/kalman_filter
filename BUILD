@@ -1,6 +1,9 @@
 cc_library(
     name="kalman_filter",
     hdrs=["kalman_filter.h"],
+    deps=[
+        "//external:eigen",
+    ]
 )
 
 cc_test(

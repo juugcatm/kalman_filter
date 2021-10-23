@@ -7,6 +7,7 @@
 
 namespace kalman {
 
+  /*
   TEST(KalmanFilter, works) {
     const double kSigma = 1.0;
     
@@ -27,6 +28,24 @@ namespace kalman {
 		<< " with error=" << filter->error()
 		<< " and gain=" << filter->gain();
     }
+  }
+  */
+  
+  class RisingFluidTraits {
+  public:
+    static constexpr std::size_t N_states = 2;
+    static constexpr std::size_t N_controls = 0;
+    static constexpr std::size_t N_meas = 0;
+  };
+  
+  class KalmanFilterRisingFluidFixture
+    : public ::testing::Test {
+  public:
+    KalmanFilter<double, RisingFluidTraits> filter_;
+  };
+  
+  TEST_F(KalmanFilterRisingFluidFixture, works) {
+    (void) filter_;
   }
   
 }

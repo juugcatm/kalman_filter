@@ -7,3 +7,13 @@ cc_test(
         "//external:gtest_main",
     ]
 )
+
+cc_test(
+    name = "falling_object",
+    srcs = ["falling_object.cpp"],
+    deps=[
+        "//lib:kalman_filter",
+        "//external:glog",
+        "//external:gtest_main",
+    ]
+)

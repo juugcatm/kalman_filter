@@ -17,3 +17,14 @@ cc_test(
         "//external:gtest_main",
     ]
 )
+
+
+cc_test(
+    name = "moving_object",
+    srcs = ["moving_object.cpp"],
+    deps=[
+        "//lib:kalman_filter",
+        "//external:glog",
+        "//external:gtest_main",
+    ]
+)

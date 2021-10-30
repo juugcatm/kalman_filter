@@ -3,6 +3,7 @@
 #include <utility>
 
 #include <Eigen/Dense>
+#include "glog/logging.h"
 
 namespace kalman {
 
@@ -27,19 +28,34 @@ namespace kalman {
 
       // Calculate new estimate with the process model.
       estimate_ = (states_T_states__process_ * estimate_) + (states_T_controls__process_ * controls_);
-
+      LOG(INFO) << "Updated estimate: " << estimate_;
+      
       // Calculate the new covariance.
-      estimate_covariance_ =
-	(states_T_states__process_ * estimate_covariance_ * states_T_states__process_.transpose()) +
-	process_cov_;
+      LOG(INFO) << "Stored cov: " << estimate_covariance_;
+      ProcessMatrix est (states_T_states__process_ * estimate_covariance_.asDiagonal() * states_T_states__process_.transpose());
+      LOG(INFO) << "Estimated cov: " << est;
+      ProcessMatrix cov (process_cov_.asDiagonal());
+      LOG(INFO) << "Process err: " << cov;
+      estimate_covariance_ = (est + cov).diagonal();
+      LOG(INFO) << "Updated cov: " << estimate_covariance_;
     }
 
-    void add_measurement (MeasurementVector meas, MeasurementMatrix meas_cov, MeasurementStatesMatrix meas_T_states) {
+    void add_measurement (MeasurementVector meas, MeasurementVector meas_cov, MeasurementStatesMatrix meas_T_states) {
       // Calculate the Kalman gain, based on the current covariance.
       auto states_T_meas = meas_T_states.transpose();
-      auto gain = (estimate_covariance_ * states_T_meas) /
-	((meas_T_states * estimate_covariance_ * states_T_meas) + meas_cov);
+      MeasurementMatrix meas_cov_diag = meas_cov.asDiagonal();
+      ProcessMatrix gain = (estimate_covariance_.asDiagonal() * states_T_meas);
+      ProcessMatrix gain_denominator = ((meas_T_states * estimate_covariance_.asDiagonal() * states_T_meas) + meas_cov_diag);
+      LOG(INFO) << "Gain numerator: " << gain;
+      LOG(INFO) << "Gain denominator: " << gain_denominator;
 
+      for (int r = 0; r < gain_denominator.rows(); r++) {
+	for (int c = 0; c < gain_denominator.cols(); c++) {
+	  gain(r, c) = (gain(r, c) == 0 ? 0 : gain(r, c) / gain_denominator(r, c));
+	}
+      }
+      LOG(INFO) << "Gain mtx: " << gain;
+      
       // Calculate the measurement in terms of the states
       auto meas_estimate = states_T_meas * meas + meas_processing_noise__states_;
 
@@ -50,16 +66,17 @@ namespace kalman {
       estimate_covariance_ = (ProcessMatrix::Identity() - gain * meas_T_states) * estimate_covariance_;
     }
     
-    void initialize (StatesVector initial_estimate, ControlsVector control_params) {
+    void initialize (StatesVector initial_estimate, ControlsVector control_params, StatesVector process_cov) {
       estimate_ = std::move(initial_estimate);
       controls_ = std::move(control_params);
+      estimate_covariance_ = std::move(process_cov);
     }
 
     const StatesVector estimate () const {
       return estimate_;
     }
 
-    const ProcessMatrix covariance() const {
+    const StatesVector covariance() const {
       return estimate_covariance_;
     }
 
@@ -74,7 +91,7 @@ namespace kalman {
     StatesVector estimate_ = StatesVector::Zero();
 
     // The current error level of the estimate.
-    ProcessMatrix estimate_covariance_ = ProcessMatrix::Identity();
+    StatesVector estimate_covariance_ = StatesVector::Identity();
     
     // The control factors for the model.
     // Additional factors that are constant throughout
@@ -93,7 +110,7 @@ namespace kalman {
     // of noise floor added to the covariance to prevent
     // the kalman gain from becoming latched at 0 and
     // refusing to contribute measurement information.
-    ProcessMatrix process_cov_ = ProcessMatrix::Zero();
+    StatesVector process_cov_ = StatesVector::Zero();
 
     // The measurement processing error (of the device,
     // e.g. internal electrical noise in analog device)

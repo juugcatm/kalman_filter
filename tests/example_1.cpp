@@ -37,7 +37,8 @@ namespace kalman {
     initial_state[1] = 1.0;  // 1 m/s velocity
 
     ControlsVector control_params = ControlsVector::Zero();
-    filter_.initialize(initial_state, control_params);
+    StatesVector process_cov = StatesVector::Zero();
+    filter_.initialize(initial_state, control_params, process_cov);
 
     filter_.update(0.1);
     EXPECT_EQ(filter_.estimate()[0], 0.1);
@@ -54,8 +55,9 @@ namespace kalman {
     initial_state[1] = 0;  // 1 m/s velocity
 
     ControlsVector controls = ControlsVector::Zero();
+    StatesVector process_cov = StatesVector::Zero();
     controls[0] = -9.8;     // 1 g of gravity    
-    filter_.initialize(initial_state, controls);
+    filter_.initialize(initial_state, controls, process_cov);
 
     filter_.update(0.1);
     EXPECT_DOUBLE_EQ(filter_.estimate()[0], -0.049);
@@ -72,8 +74,9 @@ namespace kalman {
     initial_state[1] = 1.0;  // 1 m/s velocity
 
     ControlsVector control_params = ControlsVector::Zero();
+    StatesVector process_cov = StatesVector::Zero();
     control_params[0] = 0.1;  // m/s^2 acceleration
-    filter_.initialize(initial_state, control_params);
+    filter_.initialize(initial_state, control_params, process_cov);
 
     filter_.update(0.1);
     EXPECT_EQ(filter_.estimate()[0], 0.1005);

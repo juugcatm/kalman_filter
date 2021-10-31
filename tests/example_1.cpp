@@ -5,20 +5,24 @@
 
 namespace kalman {
 
-  class NewtonianMotionTraits {
-  public:
-    static constexpr std::size_t N_states = 2;
-    static constexpr std::size_t N_controls = 1;
-    static constexpr std::size_t N_meas = 0;
-  };
-
   template <typename T>
-  class NewtonianFilter : public KalmanFilter<double, NewtonianMotionTraits> {
+  class NewtonianFilter : public KalmanFilter<double, 2, 1, 2> {
   public:
-    void updateProcessMatrices(double dt) {
-      states_T_states__process_(0, 1) = dt;
-      states_T_controls__process_(0, 0) = 0.5 * pow(dt, 2);
-      states_T_controls__process_(1, 0) = dt;
+    Eigen::Matrix<T, 2, 2> A (dt) {
+      auto A = Eigen::Matrix<T, 2, 2>::Identity();
+      A(0,1) = dt;
+      return A;
+    }
+
+    Eigen::Matrix<T, 2, 1> B (dt) {
+      auto B = Eigen::Matrix<T, 2, 1>::Zero();
+      B[0] = 0.5 * pow(dt, 2);
+      B[1] = dt;
+      return B;
+    }
+    
+    Eigen::Matrix<T, 2, 2> H () {
+      return Eigen::Matrix<T, 2, 2>::Identity();
     }
   };
   
@@ -26,8 +30,6 @@ namespace kalman {
     : public ::testing::Test {
   public:
     using FilterType = NewtonianFilter<double>;
-    using StatesVector = FilterType::StatesVector;
-    using ControlsVector = FilterType::ControlsVector;
     FilterType filter_;
   };
 

@@ -18,3 +18,13 @@ cc_test(
     ]
 )
 
+cc_test(
+    name = "example_3",
+    srcs = ["example_3.cpp"],
+    deps=[
+        "//lib:kalman_filter",
+        "//external:glog",
+        "//external:gtest_main",
+    ]
+)
+

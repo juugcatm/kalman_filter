@@ -6,7 +6,7 @@
 namespace kalman {
 
   template <typename T>
-  class NewtonianFilter : public KalmanFilter<double, 2, 1, 2> {
+  class NewtonianFilter : public KalmanFilter<double, 2> {
   public:
     Eigen::Matrix<T, 2, 2> A (dt) {
       auto A = Eigen::Matrix<T, 2, 2>::Identity();

@@ -7,54 +7,56 @@
 
 namespace kalman {
 
-  template <typename T, std::size_t N_s, std::size_t N_c, std::size_t N_m>
+  template <typename T, std::size_t N_s>
   class KalmanFilter {
   public:
     KalmanFilter() = default;
     virtual ~KalmanFilter() = default;
 
-    virtual Eigen::Matrix<T, N_s, N_s> A (double dt) = 0;
-    virtual Eigen::Matrix<T, N_s, N_c> B (double dt) = 0;
-    virtual Eigen::Matrix<T, N_m, N_s> H () = 0;
-
     /**
      * Perform a process update on the state of the Kalman Filter.
-     * This is used when the filter is being advanced between measurements.
-     * Common use cases, for example, are advancing time from t -> t' between
-     * application of measurements at t and t'. 
+     * The user must provide the process matrix to perform the update
+     * and the appropriate process noise. The matrix and the noise are
+     * typically built based on the duration of the process advancement.
+     * All control variables must be included in the process matrix
+     * in advance.
      */
-    void update (double dt, Eigen::Matrix<T, N_c, 1> controls, Eigen::Matrix<T, N_s, 1> process_variance) {
-      Eigen::Matrix<T, N_s, N_s> A_ = A(dt);
-      Eigen::Matrix<T, N_s, N_c> B_ = B(dt);
-      estimate_ = A_ * estimate_ + B_ * controls;
-      estimate_variance_ = (A_ * estimate_variance_.asDiagonal() * A_.transpose()).diagonal() + (process_variance * dt);
+    void update (const Eigen::Matrix<T, N_s, N_s>& process_matrix,
+		 const Eigen::Matrix<T, N_s, 1>&  process_variance) {
+      estimate_ = process_matrix * estimate_;
+      estimate_variance_ = (process_matrix * estimate_variance_.asDiagonal() * process_matrix.transpose()).diagonal() +
+	process_variance;
     }
 
     /**
      * Perform a measurement update on the state of the Kalman Filter.
-     * This is used when a new measurement arrives. The process of the filter
-     * should be advanced to match this provided measurement before calling
-     * this function.
+     * The user must provide the measurement values and their variances,
+     * and additionally the 'H' matrix (meas_T_states) which maps the
+     * measurement values into the states.
      */
-    void add_measurement (double dt, Eigen::Matrix<T, N_m, 1> measurement, Eigen::Matrix<T, N_m, 1> measurement_variance) {
-      Eigen::Matrix<T, N_m, N_s> H_ = H();
-      Eigen::Matrix<T, N_s, N_m> K = (estimate_covariance_ * H_.transpose()) *
-	(H_ * estimate_covariance_ * H_.transpose() + measurement_variance.asDiagonal()).inverse();
+    template <std::size_t N_m>
+    void add_measurement (const Eigen::Matrix<T, N_m, N_s>& H,
+			  const Eigen::Matrix<T, N_m, 1>& measurement,
+			  const Eigen::Matrix<T, N_m, 1>& measurement_variance) {
+      Eigen::Matrix<T, N_m, N_m> R = measurement_variance.asDiagonal();
+      Eigen::Matrix<T, N_s, N_m> K = (estimate_variance_.asDiagonal() * H.transpose()) *
+	(H * estimate_variance_.asDiagonal() * H.transpose() + R).inverse();
       estimate_ = estimate_ + K * (measurement - H * estimate_);
-      estimate_covariance_ = estimate_covariance_ - (K * H * estimate_covariance_.asDiagonal()).diagonal();
+      estimate_variance_ = estimate_variance_ - (K * H * estimate_variance_.asDiagonal()).diagonal();
     }
         
-    void initialize (Eigen::Matrix<T, N_s, 1> initial_estimate, Eigen::Matrix<T, N_s, 1> initial_estimate_cov) {
-      estimate_ = std::move(initial_estimate);
-      estimate_covariance_ = std::move(initial_estiamte_cov);
+    void initialize (const Eigen::Matrix<T, N_s, 1>& initial_estimate,
+		     const Eigen::Matrix<T, N_s, 1>& initial_estimate_variance) {
+      estimate_ = initial_estimate;
+      estimate_variance_ = initial_estimate_variance;
     }
 
-    const Eigen::Matrix<T, N_s, 1> estimate () const {
+    const Eigen::Matrix<T, N_s, 1>& estimate () const {
       return estimate_;
     }
 
-    const Eigen::Matrix<T, N_s, 1> covariance() const {
-      return estimate_covariance_;
+    const Eigen::Matrix<T, N_s, 1>& variance() const {
+      return estimate_variance_;
     }
 
   protected:
@@ -64,7 +66,7 @@ namespace kalman {
     Eigen::Matrix<T, N_s, 1> estimate_ = Eigen::Matrix<T, N_s, 1>::Zero();
 
     // The current error level of the estimate.
-    Eigen::Matrix<T, N_s, 1> estimate_covariance_ = Eigen::Matrix<T, N_s, 1>::Zero();
+    Eigen::Matrix<T, N_s, 1> estimate_variance_ = Eigen::Matrix<T, N_s, 1>::Zero();
   };
   
 }

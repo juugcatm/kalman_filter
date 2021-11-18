@@ -38,11 +38,28 @@ namespace kalman {
     void add_measurement (const Eigen::Matrix<T, N_m, N_s>& H,
 			  const Eigen::Matrix<T, N_m, 1>& measurement,
 			  const Eigen::Matrix<T, N_m, 1>& measurement_variance) {
+
+      Eigen::Matrix<T, N_s, N_m> K;
       Eigen::Matrix<T, N_m, N_m> R = measurement_variance.asDiagonal();
-      Eigen::Matrix<T, N_s, N_m> K = (estimate_variance_.asDiagonal() * H.transpose()) *
-	(H * estimate_variance_.asDiagonal() * H.transpose() + R).inverse();
+
+      // Condition the problem for measurements with no variance.
+      // This essentially sets the state of the problem based on the
+      // measurement without any regard to the current process variance.
+      if (measurement_variance.squaredNorm() == 0 ||
+	  estimate_variance_.squaredNorm() == 0) {
+	K = H.transpose();
+      } else {
+	K = (estimate_variance_.asDiagonal() * H.transpose()) *
+	  (H * estimate_variance_.asDiagonal() * H.transpose() + R).inverse();
+      }
+
+      LOG(INFO) << "Numerator: " << estimate_variance_.asDiagonal() * H.transpose();
+      LOG(INFO) << "Gain: " << K;
+      
       estimate_ = estimate_ + K * (measurement - H * estimate_);
       estimate_variance_ = estimate_variance_ - (K * H * estimate_variance_.asDiagonal()).diagonal();
+
+      LOG(INFO) << "Estimate variance: " << estimate_variance_;
     }
         
     void initialize (const Eigen::Matrix<T, N_s, 1>& initial_estimate,

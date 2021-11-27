@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "sim/event.h"
 #include "sim/time.h"
 

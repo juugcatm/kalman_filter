@@ -1,12 +1,16 @@
 cc_library (
-    name = "simulation"
+    name = "simulation",
     hdrs = [
         "event.h",
+	"generator.h",
         "scenario.h",
         "simulation.h",
         "time.h",
     ],
     srcs = [],
+    deps = [
+        "//external:glog",
+    ],
 )
 
 cc_test (

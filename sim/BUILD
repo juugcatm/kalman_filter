@@ -7,7 +7,9 @@ cc_library (
         "simulation.h",
         "time.h",
     ],
-    srcs = [],
+    srcs = [
+        "simulation.cpp",
+    ],
     deps = [
         "//external:glog",
     ],

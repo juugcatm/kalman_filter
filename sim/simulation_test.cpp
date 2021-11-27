@@ -8,44 +8,50 @@
 
 namespace kalman {
 
-  class TickEvent : public Event {
+  class TestScenario : public Scenario<TestScenario> {
   public:
-    std::optional<EventInvocationResult>
-    invoke (Scenario& scenario, Time t_current, std::default_random_engine& rng) const {
-      times_called_++;
-      return EventInvocationResult(periodic_);
-    }
+    void increment() { counter_++; }
 
+    const int& counter() const { return counter_ }
+    
   private:
-    std::shared_ptr<Periodic> periodic_;
-    int times_called_;
+    int counter_ = 0;
   };
   
   TEST(Simulation, works) {
-    constexpr Time kStart              (0);
-    constexpr Time kEnd    (1'000'000'000);
-    cosntexpr Time kPeriod   (100'000'000);
+    constexpr Time kStart (0);
+    constexpr Time kEnd (1'000'000'000);
+    constexpr Duration kPeriod (100'000'000);
+
     // Generate a simulation engine with a deterministic
     // seed value for reliable test results.
     auto engine = [](){
+      /*
       constexpr int kSeed = 42;
       std::default_random_engine random_engine(kSeed);
       return SimulationEngine(std::move(random_engine));
+      */
+      return SimulationEngine();
     }();
 
     // Define a scenario for the test.
-    Scenario test_scenario;
+    auto test_scenario = std::make_unique<TestScenario>();
 
     // Add events to the scenario.
-    test_scenario.events().push(std::make_unique<TickEvent>(kPeriod), kStart);
+    test_scenario->scheduleEvent([](TestScenario& scenario, Time t_current){
+      scenario.increment();
+    },
+    std::make_unique<PeriodicSchedule>(kStart, kPeriod));
     
     // Run the engine for the duration of the
-    // scenario definition.
-    engine.run(test_scenario, kStart, kEnd);
+    // scenario definition. We temporarily give ownership
+    // of the scenario to the engine, who returns it back
+    // to us at the end of the execution.
+    test_scenario = engine.run(std::move(test_scenario), kStart, kEnd);
 
     // Make assertions of the scenario state
     // after the engine has run for the duration.
-    
+    ASSERT(test_scenario->counter(), 10);
   }
   
 }

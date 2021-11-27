@@ -1,16 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
-#include "sim/generator.h"
 #include "sim/scenario.h"
+#incldue "sim/schedule.h"
 #include "sim/time.h"
 
 namespace kalman {
 
-  class Scenario;
-  
   class Periodic {
   public:
     explicit Periodic (Duration period, std::unique_ptr<Generator<Duration>> jitter):
@@ -25,19 +22,6 @@ namespace kalman {
     std::unique_ptr<Generator<Duration>> jitter_;
   };
   
-  class EventInvocationResult {
-  public:
-    EventInvocationResult (std::shared_ptr<const Periodic> periodic):
-      periodic_(std::move(periodic)) {}
-    
-    std::shared_ptr<const Periodic> periodic() const {
-      return periodic_;
-    }
-    
-  private:
-    std::shared_ptr<const Periodic> periodic_;
-  };
-  
   class Event {
   public:
     virtual ~Event() = default;
@@ -47,10 +31,13 @@ namespace kalman {
    
   class ScheduledEvent {
   public:
-    ScheduledEvent (std::unique_ptr<const Event> action, Time deadline):
-      deadline_(deadline),
-      action_(std::move(action)) {}
+    ScheduledEvent (std::unique_ptr<Event> event,
+		    std::unique_ptr<Schedule> schedule):
+      event_(std::move(event)),
+      schedule_(std::move(schedule)) {}
 
+    
+    
     std::unique_ptr<const Event>& action() {
       return action_;
     }
